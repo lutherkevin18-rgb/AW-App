@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Armwrestling Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+
+    .nutzer-auswahl {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .nutzer-btn {
+      padding: 0.8rem 2rem;
+      border: 2px solid #333;
+      background: none;
+      color: #aaa;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nutzer-btn.aktiv-ich {
+      border-color: #e8ff00;
+      color: #e8ff00;
+      background: rgba(232,255,0,0.08);
+    }
+
+    .nutzer-btn.aktiv-bruder {
+      border-color: #ff3c3c;
+      color: #ff3c3c;
+      background: rgba(255,60,60,0.08);
+    }
+
+    .formular {
+      display: none;
+      max-width: 420px;
+      margin: 0 auto 2rem;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .formular.sichtbar { display: block; }
+
+    .formular h2 {
+      font-size: 1rem;
+      margin-bottom: 1.2rem;
+      color: #aaa;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .formular h2 span.ich { color: #e8ff00; }
+    .formular h2 span.bruder { color: #ff3c3c; }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: #666;
+      margin-bottom: 0.3rem;
+      margin-top: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      color: #f0f0f0;
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: sans-serif;
+    }
+
+    textarea { resize: vertical; min-height: 70px; }
+
+    .submit-btn {
+      width: 100%;
+      margin-top: 1.4rem;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .submit-btn:hover { opacity: 0.85; }
+    .submit-btn.ich { background: #e8ff00; color: #000; }
+    .submit-btn.bruder { background: #ff3c3c; color: #fff; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      text-align: center;
+      font-size: 0.85rem;
+      margin-top: 0.8rem;
+      min-height: 1.2rem;
+      color: #aaa;
+    }
+
+    .status.ok { color: #4cff91; }
+    .status.fehler { color: #ff3c3c; }
+
+    .eintraege {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .eintraege h2 {
+      font-size: 0.78rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+
+    .lade-text {
+      color: #444;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .eintrag {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.7rem;
+      font-size: 0.85rem;
+    }
+
+    .eintrag-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .eintrag-nutzer {
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .eintrag-nutzer.ich { color: #e8ff00; }
+    .eintrag-nutzer.bruder { color: #ff3c3c; }
+    .eintrag-datum { color: #444; font-size: 0.78rem; }
+
+    .eintrag-details {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      color: #888;
+    }
+
+    .eintrag-notiz { margin-top: 0.4rem; color: #555; font-style: italic; }
+
+    .keine-daten {
+      color: #333;
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Armwrestling Tracker</h1>
+
+  <div class="nutzer-auswahl">
+    <button class="nutzer-btn" id="btn-ich" onclick="nutzerWaehlen('ich')">Ich</button>
+    <button class="nutzer-btn" id="btn-bruder" onclick="nutzerWaehlen('bruder')">Bruder</button>
+  </div>
+
+  <div class="formular" id="formular-ich">
+    <h2>Eintrag für <span class="ich">Ich</span></h2>
+    <label>Datum</label>
+    <input type="date" id="ich-datum">
+    <label>Arm</label>
+    <select id="ich-arm">
+      <option value="rechts">Rechts</option>
+      <option value="links">Links</option>
+    </select>
+    <label>Runden gespielt</label>
+    <input type="number" id="ich-runden" min="1" max="50" value="1">
+    <label>Siege</label>
+    <input type="number" id="ich-siege" min="0" value="0">
+    <label>Niederlagen</label>
+    <input type="number" id="ich-niederlagen" min="0" value="0">
+    <label>Notiz (optional)</label>
+    <textarea id="ich-notiz" placeholder="z.B. Technik verbessert, Schulter müde..."></textarea>
+    <button class="submit-btn ich" id="submit-ich" onclick="eintragSpeichern('ich')">Eintrag speichern</button>
+    <div class="status" id="status-ich"></div>
+  </div>
+
+  <div class="formular" id="formular-bruder">
+    <h2>Eintrag für <span class="bruder">Bruder</span></h2>
+    <label>Datum</label>
+    <input type="date" id="bruder-datum">
+    <label>Arm</label>
+    <select id="bruder-arm">
+      <option value="rechts">Rechts</option>
+      <option value="links">Links</option>
+    </select>
+    <label>Runden gespielt</label>
+    <input type="number" id="bruder-runden" min="1" max="50" value="1">
+    <label>Siege</label>
+    <input type="number" id="bruder-siege" min="0" value="0">
+    <label>Niederlagen</label>
+    <input type="number" id="bruder-niederlagen" min="0" value="0">
+    <label>Notiz (optional)</label>
+    <textarea id="bruder-notiz" placeholder="z.B. Guter Tag, starker Zug..."></textarea>
+    <button class="submit-btn bruder" id="submit-bruder" onclick="eintragSpeichern('bruder')">Eintrag speichern</button>
+    <div class="status" id="status-bruder"></div>
+  </div>
+
+  <div class="eintraege">
+    <h2>Letzte Einträge</h2>
+    <div id="eintraege-liste"><p class="lade-text">Wähle einen Nutzer um zu starten.</p></div>
+  </div>
+
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_HKL7g_hWrYYcxwK5CzZYTzg-34XpoOq9RdZrz3L-T1_7miC4NAfQZ_qxraS_TYM/exec';
+
+  const heute = new Date().toISOString().split('T')[0];
+  document.getElementById('ich-datum').value = heute;
+  document.getElementById('bruder-datum').value = heute;
+
+  let aktiverNutzer = null;
+
+  function nutzerWaehlen(nutzer) {
+    aktiverNutzer = nutzer;
+    document.getElementById('btn-ich').className = 'nutzer-btn' + (nutzer === 'ich' ? ' aktiv-ich' : '');
+    document.getElementById('btn-bruder').className = 'nutzer-btn' + (nutzer === 'bruder' ? ' aktiv-bruder' : '');
+    document.getElementById('formular-ich').className = 'formular' + (nutzer === 'ich' ? ' sichtbar' : '');
+    document.getElementById('formular-bruder').className = 'formular' + (nutzer === 'bruder' ? ' sichtbar' : '');
+    eintraegeLaden();
+  }
+
+  function eintragSpeichern(nutzer) {
+    const btn = document.getElementById('submit-' + nutzer);
+    const statusEl = document.getElementById('status-' + nutzer);
+
+    const datum = document.getElementById(nutzer + '-datum').value;
+    const arm = document.getElementById(nutzer + '-arm').value;
+    const runden = parseInt(document.getElementById(nutzer + '-runden').value) || 0;
+    const siege = parseInt(document.getElementById(nutzer + '-siege').value) || 0;
+    const niederlagen = parseInt(document.getElementById(nutzer + '-niederlagen').value) || 0;
+    const notiz = document.getElementById(nutzer + '-notiz').value;
+
+    if (!datum) {
+      statusEl.textContent = 'Bitte Datum ausfüllen.';
+      statusEl.className = 'status fehler';
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.textContent = 'Wird gespeichert...';
+    statusEl.className = 'status';
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nutzer, arm, runden, siege, niederlagen, notiz, datum })
+    })
+    .then(() => {
+      statusEl.textContent = 'Gespeichert!';
+      statusEl.className = 'status ok';
+      btn.disabled = false;
+      document.getElementById(nutzer + '-runden').value = 1;
+      document.getElementById(nutzer + '-siege').value = 0;
+      document.getElementById(nutzer + '-niederlagen').value = 0;
+      document.getElementById(nutzer + '-notiz').value = '';
+      setTimeout(() => eintraegeLaden(), 2000);
+    })
+    .catch(() => {
+      statusEl.textContent = 'Fehler beim Speichern.';
+      statusEl.className = 'status fehler';
+      btn.disabled = false;
+    });
+  }
+
+  function eintraegeLaden() {
+    const liste = document.getElementById('eintraege-liste');
+    liste.innerHTML = '<p class="lade-text">Lade Einträge...</p>';
+
+    fetch(SCRIPT_URL)
+      .then(r => r.json())
+      .then(json => {
+        const rows = json.data || [];
+        const daten = rows.slice(1).reverse();
+
+        if (daten.length === 0) {
+          liste.innerHTML = '<p class="keine-daten">Noch keine Einträge.</p>';
+          return;
+        }
+
+        const gefiltert = aktiverNutzer
+          ? daten.filter(r => r[1] === aktiverNutzer)
+          : daten;
+
+        if (gefiltert.length === 0) {
+          liste.innerHTML = '<p class="keine-daten">Noch keine Einträge für diesen Nutzer.</p>';
+          return;
+        }
+
+        liste.innerHTML = gefiltert.slice(0, 20).map(r => {
+          const nutzer = r[1] || '';
+          const arm = r[2] || '';
+          const runden = r[3] || 0;
+          const siege = r[4] || 0;
+          const niederlagen = r[5] || 0;
+          const notiz = r[6] || '';
+          const datum = r[7] || '';
+          return `
+            <div class="eintrag">
+              <div class="eintrag-header">
+                <span class="eintrag-nutzer ${nutzer}">${nutzer === 'ich' ? 'Ich' : 'Bruder'}</span>
+                <span class="eintrag-datum">${datum}</span>
+              </div>
+              <div class="eintrag-details">
+                <span>Arm: ${arm}</span>
+                <span>Runden: ${runden}</span>
+                <span>Siege: ${siege}</span>
+                <span>Niederlagen: ${niederlagen}</span>
+              </div>
+              ${notiz ? `<div class="eintrag-notiz">${notiz}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      })
+      .catch(() => {
+        liste.innerHTML = '<p class="keine-daten">Fehler beim Laden.</p>';
+      });
+  }
+</script>
+
+</body>
+</html>
